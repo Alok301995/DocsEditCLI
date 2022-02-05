@@ -13,6 +13,8 @@
 
 // *******Global**********
 
+char file_name[30];
+
 void print_and_exit(char *msg)
 {
     printf("%s\n", msg);
@@ -101,6 +103,7 @@ int parser(char *buffer)
             }
             else
             {
+                snprintf(file_name, 100, "%s", msg);
                 return 1;
             }
         }
@@ -250,13 +253,27 @@ int main(int argc, char *argv[])
             read(sockfd, buffer, sizeof(buffer));
             if (strcmp(buffer, "R") == 0)
             {
-                printf("Server Rejected the connection");
+                printf("Server Rejected the connection\n");
                 close(sockfd);
                 exit(EXIT_FAILURE);
             }
+            else if (strcmp(buffer, "exit") == 0)
+            {
+                printf("All Records Deleted, Thank you for using Online File Editor\n");
+                close(sockfd);
+                exit(EXIT_FAILURE);
+            }
+            else if (strcmp(buffer, "upload") == 0)
+            {
+                // initiate upload of file
+                printf("inside upload\n");
+                bzero(buffer, 1024);
+                sprintf(buffer, "%s", "1");
+                write(sockfd, buffer, sizeof(buffer));
+            }
             else
             {
-                puts(buffer);
+                printf("%s\n", buffer);
                 BZERO;
             }
         }

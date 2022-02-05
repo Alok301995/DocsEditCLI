@@ -60,21 +60,6 @@ void get_connected_client(char *buffer, Client *client_info)
         }
     }
 }
-void parser(char *buffer, Client *client_info)
-{
-    char command[10];
-    char msg[100];
-    int count = sscanf(buffer, "%[^' '\n] %[^\n]", command, msg);
-    bzero(buffer, 1024);
-    if (strcmp(command, "/user") == 0 && count == 1)
-    {
-        get_connected_client(buffer, client_info);
-    }
-    else
-    {
-        sprintf(buffer, "%s", "Invalid Command");
-    }
-}
 
 // ***************************
 // ******Server Functions*****
@@ -141,7 +126,31 @@ int disconnect_client(int *sockfd, Client *client_info)
     return 0;
 }
 
-// ****************************
+// ********Parser*************
+void parser(char *buffer, Client *client_info, int *fd)
+{
+    char command[10];
+    char msg[100];
+    int count = sscanf(buffer, "%[^' '\n] %[^\n]", command, msg);
+    bzero(buffer, 1024);
+    if (strcmp(command, "/user") == 0 && count == 1)
+    {
+        get_connected_client(buffer, client_info);
+    }
+    else if (strcmp(command, "/exit") == 0 && count == 1)
+    {
+
+        sprintf(buffer, "%s", "exit");
+    }
+    else if (strcmp(command, "/upload") == 0)
+    {
+        sprintf(buffer, "%s", "upload");
+    }
+    else
+    {
+        sprintf(buffer, "%s", "Invalid Command");
+    }
+}
 
 // ********Driver code********
 
@@ -266,12 +275,32 @@ int main(int argc, char *argv[])
                 else
                 {
                     printf("[%d]:%s", client_info->fd[i]->client_id, buffer);
-                    parser(buffer, client_info);
 
-                    // All the processing are done in this function and server return the result;
+                    parser(buffer, client_info, &client_info->fd[i]->sockfd);
 
-                    write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
-                    bzero(buffer, 1024);
+                    // check for client exit
+                    if (strcmp(buffer, "exit") == 0)
+                    {
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        int check = disconnect_client(&client_info->fd[i]->sockfd, client_info);
+                        bzero(buffer, 1024);
+                    }
+                    else if (strcmp(buffer, "upload") == 0)
+                    {
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                        read(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                        sprintf(buffer, "%s", "File uploaded");
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                    }
+                    // for general case
+                    else
+                    {
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                    }
                 }
             }
         }
