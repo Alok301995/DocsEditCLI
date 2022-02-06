@@ -26,6 +26,30 @@ typedef struct client
 } Client;
 
 // file permision record structure
+typedef struct collab
+{
+    int collab_flag;
+    int client_id;
+    // if access =1 means user can view the file and if access =2 means edit access
+    int access;
+} Collab;
+
+typedef struct File
+{
+    char file_name[30];
+    int origin_client_id;
+    Collab *c[4];
+} File;
+
+typedef struct File_record
+{
+    File *file;
+    struct File_record *next;
+} File_record;
+
+char file_name[100];
+
+File_record *head = NULL;
 
 // ******************************
 
@@ -126,6 +150,73 @@ int disconnect_client(int *sockfd, Client *client_info)
     return 0;
 }
 
+// ****File Record Functions*****
+
+int get_client_id(int *fd, Client *client_info)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        if (client_info->fd[i]->flag == 1 && client_info->fd[i]->sockfd == *fd)
+        {
+            return client_info->fd[i]->client_id;
+        }
+    }
+}
+
+File_record *file_node_init(char *file_name, int *fd, Client *client_info)
+{
+    File_record *node = (File_record *)malloc(sizeof(File_record));
+    node->next = NULL;
+    node->file = (File *)malloc(sizeof(File));
+    for (int i = 0; i < 4; i++)
+    {
+        node->file->c[i] = (Collab *)malloc(sizeof(Collab));
+        node->file->c[i]->access = 0;
+        node->file->c[i]->client_id = 0;
+        node->file->c[i]->collab_flag = 0;
+    }
+    snprintf(node->file->file_name, 100, "%s", file_name);
+    node->file->origin_client_id = get_client_id(fd, client_info);
+    return node;
+}
+
+void add_file_node(char *file_name, int *fd, Client *client_info)
+{
+    File_record *node = file_node_init(file_name, fd, client_info);
+    if (head == NULL)
+    {
+        head = node;
+    }
+    else
+    {
+        // add node at the starting of the head
+        node->next = head;
+        head = node;
+    }
+}
+
+void get_file_record(char *buffer)
+{
+    char msg[100];
+    File_record *temp = head;
+    if (temp == NULL)
+    {
+        sprintf(buffer, "%s", "No Record Found");
+    }
+    else
+    {
+
+        while (temp != NULL)
+        {
+            bzero(msg, 100);
+            sprintf(msg, "%s %d |", temp->file->file_name, temp->file->origin_client_id);
+            strcat(buffer, msg);
+            temp = temp->next;
+        }
+    }
+}
+// ******************************
+
 // ********Parser*************
 void parser(char *buffer, Client *client_info, int *fd)
 {
@@ -137,6 +228,10 @@ void parser(char *buffer, Client *client_info, int *fd)
     {
         get_connected_client(buffer, client_info);
     }
+    else if (strcmp(command, "/files") == 0)
+    {
+        get_file_record(buffer);
+    }
     else if (strcmp(command, "/exit") == 0 && count == 1)
     {
 
@@ -144,7 +239,18 @@ void parser(char *buffer, Client *client_info, int *fd)
     }
     else if (strcmp(command, "/upload") == 0)
     {
-        sprintf(buffer, "%s", "upload");
+        // check weather file already exist or not and also the upload.. same uploader can upload file but different uploaded can not upload same file
+        if (access(msg, F_OK) < 0)
+        {
+            snprintf(file_name, 100, "%s", msg);
+            add_file_node(file_name, fd, client_info);
+            sprintf(buffer, "%s", "upload");
+        }
+        else
+        {
+            sprintf(buffer, "%s", "File Already Exits");
+        }
+        // sinal to start upload
     }
     else
     {
@@ -289,7 +395,27 @@ int main(int argc, char *argv[])
                     {
                         write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
                         bzero(buffer, 1024);
+                        // file download started
+                        FILE *file = fopen(file_name, "w");
                         read(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        int read_count = atoi(buffer);
+                        bzero(buffer, 1024);
+                        int chunk = 256;
+                        int pos = 0;
+                        while (read_count > chunk)
+                        {
+                            int rec_byte = read(client_info->fd[i]->sockfd, buffer + pos, chunk);
+                            read_count -= rec_byte;
+                            pos += rec_byte;
+                        }
+                        if (read_count > 0)
+                        {
+                            read(client_info->fd[i]->sockfd, buffer + pos, read_count);
+                        }
+
+                        fwrite(buffer, sizeof(char), strlen(buffer), file);
+                        fclose(file);
+
                         bzero(buffer, 1024);
                         sprintf(buffer, "%s", "File uploaded");
                         write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));

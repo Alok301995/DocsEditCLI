@@ -20,6 +20,13 @@ void print_and_exit(char *msg)
     printf("%s\n", msg);
     exit(EXIT_FAILURE);
 }
+int byte_count(FILE *file)
+{
+    fseek(file, 0, SEEK_END);
+    int count = ftell(file);
+    rewind(file);
+    return count;
+}
 int _atoi(char *str)
 {
     int sign = 1, base = 0, i = 0, count = 0;
@@ -65,7 +72,6 @@ int parser(char *buffer)
     char msg[100];
     bzero(command, 10);
     bzero(msg, 100);
-
     int count = sscanf(buffer, "%[^' '\n] %[^\n]", command, msg);
     if (strcmp(command, "/user") == 0 && count == 1)
     {
@@ -198,7 +204,6 @@ int main(int argc, char *argv[])
     int PORT = atoi(argv[1]);
     struct sockaddr_in servaddr, cliaddr;
     int max_fd;
-
     char buffer[1024];
     bzero(buffer, 1024);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -265,11 +270,27 @@ int main(int argc, char *argv[])
             }
             else if (strcmp(buffer, "upload") == 0)
             {
-                // initiate upload of file
-                printf("inside upload\n");
-                bzero(buffer, 1024);
-                sprintf(buffer, "%s", "1");
+                BZERO;
+                FILE *file = fopen(file_name, "r");
+                int bytes = byte_count(file);
+                sprintf(buffer, "%d", bytes);
                 write(sockfd, buffer, sizeof(buffer));
+                BZERO;
+                int count = fread(buffer, sizeof(char), bytes, file);
+                int pos = 0;
+                int chunk = 256;
+                while (count > chunk)
+                {
+                    int send_bytes = write(sockfd, buffer + pos, chunk);
+                    count -= send_bytes;
+                    pos += send_bytes;
+                }
+                if (count > 0)
+                {
+                    write(sockfd, buffer + pos, count);
+                }
+
+                // upload complete.
             }
             else
             {
