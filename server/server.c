@@ -53,11 +53,14 @@ typedef struct invite
 {
     int sender_sock;
     int rec_sock;
+    int sender_id;
     int rec_id;
     // 0:pending ,1:accepted ,2:rejeted
     int status;
     // 1:V 2:E
     int access;
+    int flag;
+    char file_name[30];
 
 } Invite;
 
@@ -129,7 +132,7 @@ void get_connected_client(char *buffer, Client *client_info)
 
 // ***************************
 // ******************************
-Invite_list *invite_list_init(int sender_sock, int rec_id, int access, Client *client_info)
+Invite_list *invite_list_init(int sender_sock, int rec_id, int access, char *file_name, Client *client_info)
 {
     Invite_list *node = (Invite_list *)malloc(sizeof(Invite_list));
     node->next = NULL;
@@ -139,12 +142,15 @@ Invite_list *invite_list_init(int sender_sock, int rec_id, int access, Client *c
     node->invite->access = access;
     node->invite->rec_sock = get_fd(rec_id, client_info);
     node->invite->status = 0;
+    node->invite->flag = 1;
+    node->invite->sender_id = get_client_id(&sender_sock, client_info);
+    sprintf(node->invite->file_name, "%s", file_name);
     return node;
 }
 
-void add_invite_node(int sender_sock, int rec_id, int access, Client *client_info)
+void add_invite_node(int sender_sock, int rec_id, int access, char *file_name, Client *client_info)
 {
-    Invite_list *node = invite_list_init(sender_sock, rec_id, access, client_info);
+    Invite_list *node = invite_list_init(sender_sock, rec_id, access, file_name, client_info);
     if (invite_head == NULL)
     {
         invite_head = node;
@@ -155,7 +161,20 @@ void add_invite_node(int sender_sock, int rec_id, int access, Client *client_inf
         invite_head = node;
     }
 }
-int check_invite(int client_id)
+int check_invite(int *fd)
+{
+    Invite_list *temp = invite_head;
+    while (temp != NULL)
+    {
+        if (temp->invite->sender_sock == *fd)
+        {
+            return 1;
+        }
+        temp = temp->next;
+    }
+    return 0;
+}
+int valid_invite(int client_id)
 {
     Invite_list *temp = invite_head;
     while (temp != NULL)
@@ -215,10 +234,39 @@ void delete_invite(int *fd)
 void assign_invite_perm(int *fd, int status)
 {
     Invite_list *temp = invite_head;
+    File_record *file_temp = head;
+    int found = 0;
     while (temp != NULL)
     {
         if (temp->invite->rec_sock == *fd)
         {
+            while (file_temp != NULL)
+            {
+                if (strcmp(file_temp->file->file_name, temp->invite->file_name) == 0)
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (file_temp->file->c[i]->collab_flag == 0)
+                        {
+                            file_temp->file->c[i]->access = temp->invite->access;
+                            file_temp->file->c[i]->collab_flag = 1;
+                            file_temp->file->c[i]->client_id = temp->invite->rec_id;
+                            found = 1;
+                            break;
+                        }
+                    }
+                }
+
+                if (found == 1)
+                {
+                    break;
+                }
+                else
+                {
+                    file_temp = file_temp->next;
+                }
+            }
+
             temp->invite->status = status;
             return;
         }
@@ -341,6 +389,13 @@ void get_file_record(char *buffer)
             bzero(msg, 100);
             sprintf(msg, "%s %d |", temp->file->file_name, temp->file->origin_client_id);
             strcat(buffer, msg);
+            for (int i = 0; i < 4; i++)
+            {
+                bzero(msg, 100);
+                sprintf(msg, "%d |", temp->file->c[i]->client_id);
+                strcat(buffer, msg);
+            }
+            buffer[strlen(buffer)] = '\n';
             temp = temp->next;
         }
     }
@@ -453,13 +508,13 @@ void parser(char *buffer, Client *client_info, int *fd)
         {
             // send invite from here
             bzero(buffer, 1024);
-            if (check_invite(id))
+            if (check_invite(fd))
             {
                 sprintf(buffer, "%s", "Invite Already sent Wait for reply");
             }
             else
             {
-                add_invite_node(*fd, id, access, client_info);
+                add_invite_node(*fd, id, access, file_name, client_info);
                 invite_count = 1;
                 sprintf(buffer, "%s", "Invite sent");
             }
@@ -473,7 +528,7 @@ void parser(char *buffer, Client *client_info, int *fd)
     {
         // check weather this is valid invite reply or not
         int id = get_client_id(fd, client_info);
-        if (check_invite(id))
+        if (valid_invite(id))
         {
             assign_invite_perm(fd, 1);
             reply = 1;
@@ -489,7 +544,7 @@ void parser(char *buffer, Client *client_info, int *fd)
     else if (strcmp(command, "NO") == 0)
     {
         int id = get_client_id(fd, client_info);
-        if (check_invite(id))
+        if (valid_invite(id))
         {
             assign_invite_perm(fd, -1);
             reply = 1;
@@ -572,19 +627,24 @@ int main(int argc, char *argv[])
     while (1)
     {
         int max_fd = build_fdset(&master_sock, &readfd, client_info);
+        // *******************Invite*********************************
         if (invite_count == 1)
         {
             Invite_list *temp = invite_head;
             while (temp != NULL)
             {
-
-                bzero(buffer, 1024);
-                sprintf(buffer, "%s", "You have Invite");
-                write(temp->invite->rec_sock, buffer, sizeof(buffer));
+                if (temp->invite->flag == 1)
+                {
+                    bzero(buffer, 1024);
+                    sprintf(buffer, "%s %d", "Invitation from ", temp->invite->sender_id);
+                    write(temp->invite->rec_sock, buffer, sizeof(buffer));
+                    temp->invite->flag = 0;
+                }
                 temp = temp->next;
             }
             invite_count = 0;
         }
+        // ***********************Invite Reply********************
         if (reply = 1)
         {
             Invite_list *temp = invite_head;
@@ -628,6 +688,8 @@ int main(int argc, char *argv[])
             }
             reply = 0;
         }
+
+        // ******************************************************************
         int action = select(max_fd + 1, &readfd, NULL, NULL, NULL);
 
         if (FD_ISSET(master_sock, &readfd))
