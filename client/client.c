@@ -156,38 +156,31 @@ int parser(char *buffer)
             }
         }
     }
-    // else if (strcmp(command, "/read") == 0)
-    // {
-    //     if (strlen(msg) == 0)
-    //     {
-    //         printf("Invalid Command\n");
-    //         return 0;
-    //     }
-    //     else
-    //     {
-    //         char file_name[30];
-    //         char s_idx[10];
-    //         char e_idx[10];
-    //         int msg_count = sscanf(buffer, "%[^' '] %[^' '] %[^\n]", file_name, s_idx, e_idx);
-    //         if (msg_count <= 3 && strlen(file_name) > 0)
-    //         {
-    //             if (strlen(s_idx) > 0)
-    //             {
-    //                 // check for valid number
-    //             }
-    //             if (strlen(e_idx) > 0)
-    //             {
-    //                 // check for valid number
-    //             }
-    //         }
-    //     }
-    // }
-    // else if (strcmp(command, "/insert") == 0)
-    // {
-    // }
-    // else if (strcmp(command, "/delete") == 0)
-    // {
-    // }
+    else if (strcmp(command, "YES") == 0)
+    {
+        if (strlen(msg) == 0)
+        {
+            return 1;
+        }
+        else
+        {
+            printf("Invalid Command\n");
+            return 0;
+        }
+    }
+    else if (strcmp(command, "NO") == 0)
+    {
+        if (strlen(msg) == 0)
+        {
+            return 1;
+        }
+        else
+        {
+            printf("Invalid Command\n");
+            return 0;
+        }
+    }
+
     else
     {
         printf("Invalid Command\n");
@@ -235,11 +228,9 @@ int main(int argc, char *argv[])
         FD_SET(sockfd, &readfd);
         FD_SET(STDIN_FILENO, &readfd);
         int action = select(max_fd + 1, &readfd, &writefd, NULL, NULL);
-
         if (FD_ISSET(STDIN_FILENO, &readfd))
         {
             // through this socket we are sending msg from client to server
-
             BZERO;
             fgets(buffer, 1024, stdin);
             int check = parser(buffer);
