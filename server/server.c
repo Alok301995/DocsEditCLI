@@ -8,11 +8,11 @@
 #include <netinet/in.h>
 
 // *************Global***********
-
 int id_count = 1;
 int invite_count = 0;
 int reply = 0;
 
+// *******Client record structure*****
 typedef struct client_fd
 {
     int flag;
@@ -27,7 +27,9 @@ typedef struct client
     Client_fd *fd[5];
 } Client;
 
-// file permision record structure
+// ************************************
+
+// ******File Record Structure ********
 typedef struct collab
 {
     int collab_flag;
@@ -49,6 +51,9 @@ typedef struct File_record
     struct File_record *next;
 } File_record;
 
+// *************************************
+
+// **********Invite Record**************
 typedef struct invite
 {
     int sender_sock;
@@ -70,14 +75,18 @@ typedef struct Invite_list
     struct Invite_list *next;
 
 } Invite_list;
+// ***************************************
 
+// *********Global variables**************
 char file_name[100];
 
 File_record *head = NULL;
 Invite_list *invite_head = NULL;
 int new_invite = 0;
 
-// Function to generate 5 digit unique id
+// ***************************************
+
+// ***********Utility Functions***********
 int genereate_id()
 {
     int base = 10000;
@@ -85,6 +94,23 @@ int genereate_id()
     id_count++;
     return generated_id;
 }
+
+int NLINEX(FILE *file)
+{
+    int count = 0;
+    char buffer[100];
+    while (!feof(file) && fgets(buffer, 1000, file))
+    {
+        if (strlen(buffer) > 0)
+        {
+            count++;
+        }
+    }
+    rewind(file);
+    fclose(file);
+    return count;
+}
+
 int get_client_id(int *fd, Client *client_info)
 {
     for (int i = 0; i < 5; i++)
@@ -106,9 +132,10 @@ int get_fd(int c_id, Client *client_info)
     }
     return -1;
 }
+// **************************************
 
-// Function to get number of connected client
-void get_connected_client(char *buffer, Client *client_info)
+// ********Connected Client**************
+void get_connected_client(char *buffer, Client *client_info, int *fd)
 {
     if (client_info->connected_client == 0)
     {
@@ -116,22 +143,33 @@ void get_connected_client(char *buffer, Client *client_info)
     }
     else
     {
+        sprintf(buffer, "%s", "Active Users: ");
         for (int i = 0; i < client_info->MAX_CON; i++)
         {
             char msg[10];
+            bzero(msg, 10);
             if (client_info->fd[i]->flag == 1)
             {
-                sprintf(msg, "%d", client_info->fd[i]->client_id);
+                if (client_info->fd[i]->sockfd == *fd)
+                {
+
+                    sprintf(msg, "%d(M)", client_info->fd[i]->client_id);
+                }
+                else
+                {
+                    sprintf(msg, "%d", client_info->fd[i]->client_id);
+                }
                 strcat(buffer, msg);
-                sprintf(msg, "%s", " || ");
+                bzero(msg, 10);
+                sprintf(msg, "%s", " | ");
                 strcat(buffer, msg);
             }
         }
     }
 }
+// *************************************
 
-// ***************************
-// ******************************
+// *********Invite Record Functions**********
 Invite_list *invite_list_init(int sender_sock, int rec_id, int access, char *file_name, Client *client_info)
 {
     Invite_list *node = (Invite_list *)malloc(sizeof(Invite_list));
@@ -161,6 +199,7 @@ void add_invite_node(int sender_sock, int rec_id, int access, char *file_name, C
         invite_head = node;
     }
 }
+
 int check_invite(int *fd)
 {
     Invite_list *temp = invite_head;
@@ -174,6 +213,7 @@ int check_invite(int *fd)
     }
     return 0;
 }
+
 int valid_invite(int client_id)
 {
     Invite_list *temp = invite_head;
@@ -187,8 +227,6 @@ int valid_invite(int client_id)
     }
     return 0;
 }
-
-// check for valid invite
 
 int check_valid_invite(int *fd)
 {
@@ -204,7 +242,6 @@ int check_valid_invite(int *fd)
     return 0;
 }
 
-// delete invite
 void delete_invite(int *fd)
 {
     Invite_list *temp = invite_head;
@@ -231,39 +268,62 @@ void delete_invite(int *fd)
     free(temp);
 }
 
-void assign_invite_perm(int *fd, int status)
+void assign_invite_perm(int *fd, int status, int flag, Client *client_info)
 {
     Invite_list *temp = invite_head;
     File_record *file_temp = head;
-    int found = 0;
+    int empty_index = -1;
+    int found = -1;
+    int b = 0;
     while (temp != NULL)
     {
         if (temp->invite->rec_sock == *fd)
         {
-            while (file_temp != NULL)
+            if (flag)
             {
-                if (strcmp(file_temp->file->file_name, temp->invite->file_name) == 0)
+                while (file_temp != NULL)
                 {
-                    for (int i = 0; i < 4; i++)
+                    if (strcmp(file_temp->file->file_name, temp->invite->file_name) == 0)
                     {
-                        if (file_temp->file->c[i]->collab_flag == 0)
+                        int id = get_client_id(fd, client_info);
+                        for (int i = 0; i < 4; i++)
                         {
-                            file_temp->file->c[i]->access = temp->invite->access;
-                            file_temp->file->c[i]->collab_flag = 1;
-                            file_temp->file->c[i]->client_id = temp->invite->rec_id;
-                            found = 1;
-                            break;
+                            if (file_temp->file->c[i]->collab_flag == 0)
+                            {
+                                empty_index = i;
+                                break;
+                            }
+                        }
+                        for (int i = 0; i < 4; i++)
+                        {
+                            if (file_temp->file->c[i]->client_id == id)
+                            {
+                                found = i;
+                                break;
+                            }
+                        }
+                        if (found != -1)
+                        {
+                            file_temp->file->c[found]->access = temp->invite->access;
+                            b = 1;
+                        }
+                        else if (empty_index != -1)
+                        {
+                            file_temp->file->c[empty_index]->access = temp->invite->access;
+                            file_temp->file->c[empty_index]->collab_flag = 1;
+                            file_temp->file->c[empty_index]->client_id = temp->invite->rec_id;
+                            b = 1;
                         }
                     }
-                }
 
-                if (found == 1)
-                {
-                    break;
-                }
-                else
-                {
-                    file_temp = file_temp->next;
+                    if (b == 1)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        file_temp = file_temp->next;
+                    }
                 }
             }
 
@@ -274,8 +334,8 @@ void assign_invite_perm(int *fd, int status)
     }
 }
 
-// *******************************
-// ******Server Functions*****
+// ************************************************
+// ************Server Functions********************
 
 int build_fdset(int *socket, fd_set *reafd, Client *client_info)
 {
@@ -338,8 +398,9 @@ int disconnect_client(int *sockfd, Client *client_info)
     }
     return 0;
 }
+// ****************************************************
 
-// ****File Record Functions*****
+// **********File Record Functions*********************
 
 File_record *file_node_init(char *file_name, int *fd, Client *client_info)
 {
@@ -367,7 +428,6 @@ void add_file_node(char *file_name, int *fd, Client *client_info)
     }
     else
     {
-        // add node at the starting of the head
         node->next = head;
         head = node;
     }
@@ -387,13 +447,18 @@ void get_file_record(char *buffer)
         while (temp != NULL)
         {
             bzero(msg, 100);
-            sprintf(msg, "%s %d |", temp->file->file_name, temp->file->origin_client_id);
+            FILE *file = fopen(temp->file->file_name, "r");
+            int line_count = NLINEX(file);
+            sprintf(msg, "%s %d %d |", temp->file->file_name, temp->file->origin_client_id, line_count);
             strcat(buffer, msg);
             for (int i = 0; i < 4; i++)
             {
                 bzero(msg, 100);
-                sprintf(msg, "%d |", temp->file->c[i]->client_id);
-                strcat(buffer, msg);
+                if (temp->file->c[i]->client_id != 0)
+                {
+                    sprintf(msg, "%d (%d)|", temp->file->c[i]->client_id, temp->file->c[i]->access);
+                    strcat(buffer, msg);
+                }
             }
             buffer[strlen(buffer)] = '\n';
             temp = temp->next;
@@ -401,9 +466,9 @@ void get_file_record(char *buffer)
     }
 }
 
-// ********Functions for Invite Checks************
+// *****************************************************
+// ********Invite command check function****************
 
-// To check weather file exits on the server or not
 int check_file(char *file_name)
 {
     if (access(file_name, F_OK) == 0)
@@ -451,9 +516,9 @@ int check_file_name_owner(char *file_name, int *fd, Client *client_info)
     return 0;
 }
 
-// ******************************
+// ********************************************
 
-// ********Parser*************
+// ******************Parser********************
 void parser(char *buffer, Client *client_info, int *fd)
 {
     char command[10];
@@ -462,7 +527,7 @@ void parser(char *buffer, Client *client_info, int *fd)
     bzero(buffer, 1024);
     if (strcmp(command, "/user") == 0 && count == 1)
     {
-        get_connected_client(buffer, client_info);
+        get_connected_client(buffer, client_info, fd);
     }
     else if (strcmp(command, "/files") == 0)
     {
@@ -526,11 +591,10 @@ void parser(char *buffer, Client *client_info, int *fd)
     }
     else if (strcmp(command, "YES") == 0)
     {
-        // check weather this is valid invite reply or not
         int id = get_client_id(fd, client_info);
         if (valid_invite(id))
         {
-            assign_invite_perm(fd, 1);
+            assign_invite_perm(fd, 1, 1, client_info);
             reply = 1;
             bzero(buffer, 1024);
             sprintf(buffer, "%s", "You are Collaborator");
@@ -546,7 +610,7 @@ void parser(char *buffer, Client *client_info, int *fd)
         int id = get_client_id(fd, client_info);
         if (valid_invite(id))
         {
-            assign_invite_perm(fd, -1);
+            assign_invite_perm(fd, -1, 0, client_info);
             reply = 1;
             bzero(buffer, 1024);
             sprintf(buffer, "%s", "You reject the invite");
@@ -557,14 +621,14 @@ void parser(char *buffer, Client *client_info, int *fd)
             sprintf(buffer, "%s", "Invalid Command");
         }
     }
-
     else
     {
         sprintf(buffer, "%s", "Invalid Command");
     }
 }
+// ********************************************************
 
-// ********Driver code********
+// ******************Driver code***************************
 
 int main(int argc, char *argv[])
 {
