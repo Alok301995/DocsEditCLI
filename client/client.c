@@ -210,6 +210,24 @@ int parser(char *buffer)
             return 0;
         }
     }
+    else if (strcmp(command, "/delete") == 0)
+    {
+        char file_name[30];
+        char s_idx[10];
+        char e_idx[10];
+        int msg_count = sscanf(msg, "%[^' '] %[^' '] %[^\n]", file_name, s_idx, e_idx);
+        if (msg_count >= 1 && msg_count <= 3)
+        {
+            // 1. check whether the s_idx and e_idx are valid number or not
+            // check file_name length
+            return 1;
+        }
+        else
+        {
+            printf("Invalid Command\n");
+            return 0;
+        }
+    }
 
     else
     {
@@ -355,6 +373,11 @@ int main(int argc, char *argv[])
                     read(sockfd, buffer + pos, read_count);
                 }
                 puts(buffer);
+            }
+            else if (strcmp(buffer, "delete") == 0)
+            {
+                printf("delete initiated\n");
+                bzero(buffer, 1024);
             }
             else
             {

@@ -66,18 +66,14 @@ Op_Data *op_data_node;
 
 // *************************************
 
-void op_data_init(char *file_name, int s, int e, int s_flag, int e_flag, int total_lines, char *action)
+void op_data_init(char *file_name, int s, int e, int total_lines)
 {
     op_data_node = (Op_Data *)malloc(sizeof(Op_Data));
     bzero(op_data_node->file_name, 30);
     sprintf(op_data_node->file_name, "%s", file_name);
     op_data_node->start = s;
     op_data_node->end = e;
-    op_data_node->s_flag = s_flag;
-    op_data_node->e_flag = e_flag;
     op_data_node->total_lines = total_lines;
-    bzero(op_data_node->action, 30);
-    sprintf(op_data_node->action, "%s", action);
 }
 
 // **********Invite Record**************
@@ -566,7 +562,7 @@ int check_file_name_owner(char *file_name, int *fd, Client *client_info)
 
 // **************Read Function*****************
 
-int precheck_read(int *fd, Client *client_info, char *file_name)
+int precheck_read(int *fd, Client *client_info, char *file_name, int delete_flag)
 {
     int id = get_client_id(fd, client_info);
     File_record *temp = head;
@@ -586,7 +582,21 @@ int precheck_read(int *fd, Client *client_info, char *file_name)
                     {
                         if (temp->file->c[i]->client_id == id)
                         {
-                            return 1;
+                            if (delete_flag)
+                            {
+                                if (temp->file->c[i]->access == 2)
+                                {
+                                    return 1;
+                                }
+                                else
+                                {
+                                    return 0;
+                                }
+                            }
+                            else
+                            {
+                                return 1;
+                            }
                         }
                     }
                 }
@@ -603,11 +613,8 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
     FILE *file = fopen(file_name, "r");
     int total_lines = NLINEX(file);
     fclose(file);
-    char action[30];
-    bzero(action, 30);
-    sprintf(action, "%s", "read");
-    int start;
-    int end;
+    int start = 0;
+    int end = 0;
     if (s_flag == 1)
     {
         start = s_idx >= 0 ? s_idx : total_lines + s_idx;
@@ -625,7 +632,7 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
     {
         if (start < total_lines && end < total_lines && start <= end)
         {
-            op_data_init(file_name, start, end, s_flag, e_flag, total_lines, action);
+            op_data_init(file_name, start, end, total_lines);
             return 1;
         }
         else
@@ -639,7 +646,7 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
         {
             if (start < total_lines)
             {
-                op_data_init(file_name, start, end, s_flag, e_flag, total_lines, action);
+                op_data_init(file_name, start, start, total_lines);
                 return 1;
             }
             else
@@ -649,7 +656,7 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
         {
             if (end < total_lines)
             {
-                op_data_init(file_name, start, end, s_flag, e_flag, total_lines, action);
+                op_data_init(file_name, end, end, total_lines);
                 return 1;
             }
             else
@@ -661,7 +668,7 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
 
     else
     {
-        op_data_init(file_name, start, end, s_flag, e_flag, total_lines, action);
+        op_data_init(file_name, 0, total_lines - 1, total_lines);
         return 1;
     }
 }
@@ -708,7 +715,7 @@ void parser(char *buffer, Client *client_info, int *fd)
     }
     else if (strcmp(command, "/download") == 0)
     {
-        if (precheck_read(fd, client_info, msg) == 1)
+        if (precheck_read(fd, client_info, msg, 0) == 1)
         {
             sprintf(buffer, "%s", "download");
         }
@@ -801,7 +808,7 @@ void parser(char *buffer, Client *client_info, int *fd)
         // check if the user who is reqiesting read is owner or colaborator
         // check if the requested line is out of range or not
 
-        if (precheck_read(fd, client_info, file_name) == 1)
+        if (precheck_read(fd, client_info, file_name, 0) == 1)
         {
             int s = -1;
             int e = -1;
@@ -817,7 +824,6 @@ void parser(char *buffer, Client *client_info, int *fd)
             {
                 e = atoi(e_idx);
                 printf("end %d\n", e);
-
                 e_flag = 1;
             }
 
@@ -829,13 +835,61 @@ void parser(char *buffer, Client *client_info, int *fd)
             else
             {
                 bzero(buffer, 1024);
-                sprintf(buffer, "%s", "Invalid File Arguments. please enter valid indexs");
+                sprintf(buffer, "%s", "Invalid Arguments. please enter valid arguments");
             }
         }
         else
         {
             bzero(buffer, 1024);
             sprintf(buffer, "%s", "File read Error");
+        }
+    }
+    else if (strcmp(command, "/delete") == 0)
+    {
+
+        char file_name[30];
+        char s_idx[10];
+        char e_idx[10];
+        bzero(file_name, 30);
+        bzero(s_idx, 10);
+        bzero(e_idx, 10);
+        int msg_count = sscanf(msg, "%[^' '] %[^' '] %[^\n]", file_name, s_idx, e_idx);
+        // check if the requested file exits on the file record or not
+        // check if the user who is reqiesting read is owner or colaborator
+        // check if the requested line is out of range or not
+
+        if (precheck_read(fd, client_info, file_name, 1) == 1)
+        {
+            int s = -1;
+            int e = -1;
+            int s_flag = 0;
+            int e_flag = 0;
+            if (strlen(s_idx) > 0)
+            {
+                s = atoi(s_idx);
+                s_flag = 1;
+            }
+            if (strlen(e_idx) > 0)
+            {
+                e = atoi(e_idx);
+                e_flag = 1;
+            }
+
+            if (validate_read_args(file_name, s, e, s_flag, e_flag) == 1)
+            {
+                bzero(buffer, 1024);
+                sprintf(buffer, "%s", "delete");
+            }
+            else
+            {
+                bzero(buffer, 1024);
+                sprintf(buffer, "%s", "Invalid Arguments. please enter valid arguments");
+            }
+        }
+        else
+        {
+            bzero(buffer, 1024);
+            sprintf(buffer, "%s", "File Delete Error");
         }
     }
 
@@ -1109,34 +1163,12 @@ int main(int argc, char *argv[])
                         // loading content to temp_file
                         FILE *tmp_file = fopen("temp_file.txt", "w+");
                         FILE *file = fopen(op_data_node->file_name, "r");
-                        int s;
-                        int e;
-                        if (op_data_node->s_flag == 1 && op_data_node->e_flag == 1)
-                        {
-                            s = op_data_node->start;
-                            e = op_data_node->end;
-                        }
-                        else if (op_data_node->s_flag == 1 && op_data_node->e_flag == 0)
-                        {
-                            s = op_data_node->start;
-                            e = op_data_node->start;
-                        }
-                        else if (op_data_node->s_flag == 0 && op_data_node->e_flag == 1)
-                        {
-                            s = op_data_node->end;
-                            e = op_data_node->end;
-                        }
-                        else
-                        {
-                            s = 0;
-                            e = op_data_node->total_lines - 1;
-                        }
                         int count = 0;
                         char file_buff[1000];
                         bzero(file_buff, 1000);
-                        while (count <= e)
+                        while (count <= op_data_node->end)
                         {
-                            if (count >= s)
+                            if (count >= op_data_node->start)
                             {
                                 fgets(file_buff, 1000, file);
                                 fputs(file_buff, tmp_file);
@@ -1146,8 +1178,8 @@ int main(int argc, char *argv[])
                             else
                             {
                                 fgets(file_buff, 1000, file);
-                                count++;
                                 bzero(file_buff, 1000);
+                                count++;
                             }
                         }
                         fclose(file);
@@ -1174,7 +1206,43 @@ int main(int argc, char *argv[])
                         free(op_data_node);
                         remove("temp_file.txt");
                     }
-
+                    else if (strcmp(buffer, "delete") == 0)
+                    {
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                        // prepare for the delete operation
+                        FILE *temp_file = fopen("temp_file.txt", "w+");
+                        FILE *file = fopen(op_data_node->file_name, "r+");
+                        int count = 0;
+                        char file_buff[1000];
+                        bzero(file_buff, 1000);
+                        while (count < op_data_node->total_lines)
+                        {
+                            if (count >= 0 && count < op_data_node->start)
+                            {
+                                fgets(file_buff, 1000, file);
+                                fputs(file_buff, temp_file);
+                                bzero(file_buff, 1000);
+                                count++;
+                            }
+                            else if (count > op_data_node->end && count < op_data_node->total_lines)
+                            {
+                                fgets(file_buff, 1000, file);
+                                fputs(file_buff, temp_file);
+                                bzero(file_buff, 1000);
+                                count++;
+                            }
+                            else
+                            {
+                                fgets(file_buff, 1000, file);
+                                bzero(file_buff, 1000);
+                                count++;
+                            }
+                        }
+                        free(op_data_node);
+                        fclose(file);
+                        fclose(temp_file);
+                    }
                     // for general case
                     else
                     {
