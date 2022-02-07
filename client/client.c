@@ -119,6 +119,18 @@ int parser(char *buffer)
             return 0;
         }
     }
+    else if (strcmp(command, "/download") == 0)
+    {
+        if (strlen(msg) == 0)
+        {
+            printf("Invalid Download command\n");
+            return 0;
+        }
+        else
+        {
+            return 1;
+        }
+    }
     else if (strcmp(command, "/exit") == 0 && count == 1)
     {
         if (strlen(msg) == 0)
@@ -189,6 +201,7 @@ int parser(char *buffer)
         if (msg_count >= 1 && msg_count <= 3)
         {
             // 1. check whether the s_idx and e_idx are valid number or not
+            // check file_name length
             return 1;
         }
         else
@@ -299,6 +312,49 @@ int main(int argc, char *argv[])
                 }
 
                 // upload complete.
+            }
+            else if (strcmp(buffer, "download") == 0)
+            {
+                FILE *file = fopen("download.txt", "w");
+                read(sockfd, buffer, sizeof(buffer));
+                int read_count = atoi(buffer);
+                bzero(buffer, 1024);
+                int chunk = 256;
+                int pos = 0;
+                while (read_count > chunk)
+                {
+                    int rec_byte = read(sockfd, buffer + pos, chunk);
+                    read_count -= rec_byte;
+                    pos += rec_byte;
+                }
+                if (read_count > 0)
+                {
+                    read(sockfd, buffer + pos, read_count);
+                }
+                fwrite(buffer, sizeof(char), strlen(buffer), file);
+                fclose(file);
+            }
+
+            else if (strcmp(buffer, "read") == 0)
+            {
+                // send a signal to the server
+                bzero(buffer, 1024);
+                read(sockfd, buffer, sizeof(buffer));
+                int read_count = atoi(buffer);
+                bzero(buffer, 1024);
+                int chunk = 256;
+                int pos = 0;
+                while (read_count > chunk)
+                {
+                    int rec_byte = read(sockfd, buffer + pos, chunk);
+                    read_count -= rec_byte;
+                    pos += rec_byte;
+                }
+                if (read_count > 0)
+                {
+                    read(sockfd, buffer + pos, read_count);
+                }
+                puts(buffer);
             }
             else
             {

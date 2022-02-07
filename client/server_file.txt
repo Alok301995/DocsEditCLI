@@ -1,0 +1,250 @@
+1	The Shawshank Redemption
+2	The Godfather
+3	The Godfather: Part II
+4	The Dark Knight
+5	12 Angry Men
+6	Schindler's List
+7	Pulp Fiction
+8	The Good, the Bad and the Ugly
+9	The Lord of the Rings: The Return of the King
+10	Fight Club
+11	The Lord of the Rings: The Fellowship of the Ring
+12	Star Wars: Episode V - The Empire Strikes Back
+13	Forrest Gump
+14	Inception
+15	One Flew Over the Cuckoo's Nest
+16	The Lord of the Rings: The Two Towers
+17	Goodfellas
+18	The Matrix
+19	Star Wars
+20	Seven Samurai
+21	City of God
+22	Se7en
+23	The Silence of the Lambs
+24	The Usual Suspects
+25	It's a Wonderful Life
+26	Life Is Beautiful
+27	Léon: The Professional
+28	Once Upon a Time in the West
+29	Interstellar
+30	Saving Private Ryan
+31	American History X
+32	Spirited Away
+33	Casablanca
+34	Raiders of the Lost Ark
+35	Psycho
+36	City Lights
+37	Rear Window
+38	The Intouchables
+39	Modern Times
+40	Terminator 2: Judgment Day
+41	Whiplash
+42	The Green Mile
+43	The Pianist
+44	Memento
+45	The Departed
+46	Gladiator
+47	Apocalypse Now
+48	Back to the Future
+49	Sunset Blvd.
+50	Dr. Strangelove or: How I Learned to Stop Worrying and Love the Bomb
+51	The Prestige
+52	Alien
+53	The Lion King
+54	The Lives of Others
+55	The Great Dictator
+56	Inside Out
+57	Cinema Paradiso
+58	The Shining
+59	Paths of Glory
+60	Django Unchained
+61	The Dark Knight Rises
+62	WALL·E
+63	American Beauty
+64	Grave of the Fireflies
+65	Aliens
+66	Citizen Kane
+67	North by Northwest
+68	Princess Mononoke
+69	Vertigo
+70	Oldeuboi
+71	Das Boot
+72	M
+73	Star Wars: Episode VI - Return of the Jedi
+74	Once Upon a Time in America
+75	Amélie
+76	Witness for the Prosecution
+77	Reservoir Dogs
+78	Braveheart
+79	Toy Story 3
+80	A Clockwork Orange
+81	Double Indemnity
+82	Taxi Driver
+83	Requiem for a Dream
+84	To Kill a Mockingbird
+85	Lawrence of Arabia
+86	Eternal Sunshine of the Spotless Mind
+87	Full Metal Jacket
+88	The Sting
+89	Amadeus
+90	Bicycle Thieves
+91	Singin' in the Rain
+92	Monty Python and the Holy Grail
+93	Snatch.
+94	2001: A Space Odyssey
+95	The Kid
+96	L.A. Confidential
+97	Rashômon
+98	For a Few Dollars More
+99	Toy Story
+100	The Apartment
+101	Inglourious Basterds
+102	All About Eve
+103	The Treasure of the Sierra Madre
+104	Jodaeiye Nader az Simin
+105	Indiana Jones and the Last Crusade
+106	Metropolis
+107	Yojimbo
+108	The Third Man
+109	Batman Begins
+110	Scarface
+111	Some Like It Hot
+112	Unforgiven
+113	3 Idiots
+114	Up
+115	Raging Bull
+116	Downfall
+117	Mad Max: Fury Road
+118	Jagten
+119	Chinatown
+120	The Great Escape
+121	Die Hard
+122	Good Will Hunting
+123	Heat
+124	On the Waterfront
+125	Pan's Labyrinth
+126	Mr. Smith Goes to Washington
+127	The Bridge on the River Kwai
+128	My Neighbor Totoro
+129	Ran
+130	The Gold Rush
+131	Ikiru
+132	The Seventh Seal
+133	Blade Runner
+134	The Secret in Their Eyes
+135	Wild Strawberries
+136	The General
+137	Lock, Stock and Two Smoking Barrels
+138	The Elephant Man
+139	Casino
+140	The Wolf of Wall Street
+141	Howl's Moving Castle
+142	Warrior
+143	Gran Torino
+144	V for Vendetta
+145	The Big Lebowski
+146	Rebecca
+147	Judgment at Nuremberg
+148	A Beautiful Mind
+149	Cool Hand Luke
+150	The Deer Hunter
+151	How to Train Your Dragon
+152	Gone with the Wind
+153	Fargo
+154	Trainspotting
+155	It Happened One Night
+156	Dial M for Murder
+157	Into the Wild
+158	Gone Girl
+159	The Sixth Sense
+160	Rush
+161	Finding Nemo
+162	The Maltese Falcon
+163	Mary and Max
+164	No Country for Old Men
+165	The Thing
+166	Incendies
+167	Hotel Rwanda
+168	Kill Bill: Vol. 1
+169	Life of Brian
+170	Platoon
+171	The Wages of Fear
+172	Butch Cassidy and the Sundance Kid
+173	There Will Be Blood
+174	Network
+175	Touch of Evil
+176	The 400 Blows
+177	Stand by Me
+178	12 Years a Slave
+179	The Princess Bride
+180	Annie Hall
+181	Persona
+182	The Grand Budapest Hotel
+183	Amores Perros
+184	In the Name of the Father
+185	Million Dollar Baby
+186	Ben-Hur
+187	The Grapes of Wrath
+188	Hachi: A Dog's Tale
+189	Nausicaä of the Valley of the Wind
+190	Shutter Island
+191	Diabolique
+192	Sin City
+193	The Wizard of Oz
+194	Gandhi
+195	Stalker
+196	The Bourne Ultimatum
+197	The Best Years of Our Lives
+198	Donnie Darko
+199	Relatos salvajes
+200	8½
+201	Strangers on a Train
+202	Jurassic Park
+203	The Avengers
+204	Before Sunrise
+205	Twelve Monkeys
+206	The Terminator
+207	Infernal Affairs
+208	Jaws
+209	The Battle of Algiers
+210	Groundhog Day
+211	Memories of Murder
+212	Guardians of the Galaxy
+213	Monsters, Inc.
+214	Harry Potter and the Deathly Hallows: Part 2
+215	Throne of Blood
+216	The Truman Show
+217	Fanny and Alexander
+218	Barry Lyndon
+219	Rocky
+220	Dog Day Afternoon
+221	The Imitation Game
+222	Yip Man
+223	The King's Speech
+224	High Noon
+225	La Haine
+226	A Fistful of Dollars
+227	Pirates of the Caribbean: The Curse of the Black Pearl
+228	Notorious
+229	Castle in the Sky
+230	Prisoners
+231	The Help
+232	Who's Afraid of Virginia Woolf?
+233	Roman Holiday
+234	Spring, Summer, Fall, Winter... and Spring
+235	The Night of the Hunter
+236	Beauty and the Beast
+237	La Strada
+238	Papillon
+239	X-Men: Days of Future Past
+240	Before Sunset
+241	Anatomy of a Murder
+242	The Hustler
+243	The Graduate
+244	The Big Sleep
+245	Underground
+246	Elite Squad: The Enemy Within
+247	Gangs of Wasseypur
+248	Lagaan: Once Upon a Time in India
+249	Paris, Texas
+250	Akira

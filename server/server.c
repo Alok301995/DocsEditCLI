@@ -51,7 +51,34 @@ typedef struct File_record
     struct File_record *next;
 } File_record;
 
+typedef struct Operation_Data
+{
+    char file_name[30];
+    int start;
+    int end;
+    int s_flag;
+    int e_flag;
+    int total_lines;
+    char action[30];
+} Op_Data;
+
+Op_Data *op_data_node;
+
 // *************************************
+
+void op_data_init(char *file_name, int s, int e, int s_flag, int e_flag, int total_lines, char *action)
+{
+    op_data_node = (Op_Data *)malloc(sizeof(Op_Data));
+    bzero(op_data_node->file_name, 30);
+    sprintf(op_data_node->file_name, "%s", file_name);
+    op_data_node->start = s;
+    op_data_node->end = e;
+    op_data_node->s_flag = s_flag;
+    op_data_node->e_flag = e_flag;
+    op_data_node->total_lines = total_lines;
+    bzero(op_data_node->action, 30);
+    sprintf(op_data_node->action, "%s", action);
+}
 
 // **********Invite Record**************
 typedef struct invite
@@ -94,7 +121,13 @@ int genereate_id()
     id_count++;
     return generated_id;
 }
-
+int byte_count(FILE *file)
+{
+    fseek(file, 0, SEEK_END);
+    int count = ftell(file);
+    rewind(file);
+    return count;
+}
 int NLINEX(FILE *file)
 {
     int count = 0;
@@ -570,6 +603,9 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
     FILE *file = fopen(file_name, "r");
     int total_lines = NLINEX(file);
     fclose(file);
+    char action[30];
+    bzero(action, 30);
+    sprintf(action, "%s", "read");
     int start;
     int end;
     if (s_flag == 1)
@@ -589,6 +625,7 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
     {
         if (start < total_lines && end < total_lines && start <= end)
         {
+            op_data_init(file_name, start, end, s_flag, e_flag, total_lines, action);
             return 1;
         }
         else
@@ -602,6 +639,7 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
         {
             if (start < total_lines)
             {
+                op_data_init(file_name, start, end, s_flag, e_flag, total_lines, action);
                 return 1;
             }
             else
@@ -611,6 +649,7 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
         {
             if (end < total_lines)
             {
+                op_data_init(file_name, start, end, s_flag, e_flag, total_lines, action);
                 return 1;
             }
             else
@@ -622,11 +661,15 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
 
     else
     {
+        op_data_init(file_name, start, end, s_flag, e_flag, total_lines, action);
         return 1;
     }
 }
 
 // ********************************************
+// **********File donwload check functions*******
+
+// **********************************************
 
 // ******************Parser********************
 void parser(char *buffer, Client *client_info, int *fd)
@@ -663,6 +706,18 @@ void parser(char *buffer, Client *client_info, int *fd)
         }
         // sinal to start upload
     }
+    else if (strcmp(command, "/download") == 0)
+    {
+        if (precheck_read(fd, client_info, msg) == 1)
+        {
+            sprintf(buffer, "%s", "download");
+        }
+        else
+        {
+            sprintf(buffer, "%s", "File Doesn't Exits");
+        }
+    }
+
     else if (strcmp(command, "/invite") == 0)
     {
         char file_name[30];
@@ -769,7 +824,7 @@ void parser(char *buffer, Client *client_info, int *fd)
             if (validate_read_args(file_name, s, e, s_flag, e_flag) == 1)
             {
                 bzero(buffer, 1024);
-                sprintf(buffer, "%s", "File read success");
+                sprintf(buffer, "%s", "read");
             }
             else
             {
@@ -1009,7 +1064,7 @@ int main(int argc, char *argv[])
                         {
                             read(client_info->fd[i]->sockfd, buffer + pos, read_count);
                         }
-
+                        // puts(buffer);
                         fwrite(buffer, sizeof(char), strlen(buffer), file);
                         fclose(file);
 
@@ -1018,6 +1073,108 @@ int main(int argc, char *argv[])
                         write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
                         bzero(buffer, 1024);
                     }
+                    else if (strcmp(buffer, "download") == 0)
+                    {
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                        // file upload started;
+                        FILE *file = fopen(file_name, "r");
+                        int bytes = byte_count(file);
+                        sprintf(buffer, "%d", bytes);
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                        int count = fread(buffer, sizeof(char), bytes, file);
+                        int pos = 0;
+                        int chunk = 256;
+                        while (count > chunk)
+                        {
+                            int send_bytes = write(client_info->fd[i]->sockfd, buffer + pos, chunk);
+                            count -= send_bytes;
+                            pos += send_bytes;
+                        }
+                        if (count > 0)
+                        {
+                            write(client_info->fd[i]->sockfd, buffer + pos, count);
+                        }
+                        bzero(buffer, 1024);
+                        sprintf(buffer, "%s", "File Download complete");
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                    }
+
+                    else if (strcmp(buffer, "read") == 0)
+                    {
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                        // loading content to temp_file
+                        FILE *tmp_file = fopen("temp_file.txt", "w+");
+                        FILE *file = fopen(op_data_node->file_name, "r");
+                        int s;
+                        int e;
+                        if (op_data_node->s_flag == 1 && op_data_node->e_flag == 1)
+                        {
+                            s = op_data_node->start;
+                            e = op_data_node->end;
+                        }
+                        else if (op_data_node->s_flag == 1 && op_data_node->e_flag == 0)
+                        {
+                            s = op_data_node->start;
+                            e = op_data_node->start;
+                        }
+                        else if (op_data_node->s_flag == 0 && op_data_node->e_flag == 1)
+                        {
+                            s = op_data_node->end;
+                            e = op_data_node->end;
+                        }
+                        else
+                        {
+                            s = 0;
+                            e = op_data_node->total_lines - 1;
+                        }
+                        int count = 0;
+                        char file_buff[1000];
+                        bzero(file_buff, 1000);
+                        while (count <= e)
+                        {
+                            if (count >= s)
+                            {
+                                fgets(file_buff, 1000, file);
+                                fputs(file_buff, tmp_file);
+                                bzero(file_buff, 1000);
+                                count++;
+                            }
+                            else
+                            {
+                                fgets(file_buff, 1000, file);
+                                count++;
+                                bzero(file_buff, 1000);
+                            }
+                        }
+                        fclose(file);
+                        // upload the test file
+                        int bytes = byte_count(tmp_file);
+                        sprintf(buffer, "%d", bytes);
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                        count = fread(buffer, sizeof(char), bytes, tmp_file);
+                        int pos = 0;
+                        int chunk = 256;
+                        while (count > chunk)
+                        {
+                            int send_bytes = write(client_info->fd[i]->sockfd, buffer + pos, chunk);
+                            count -= send_bytes;
+                            pos += send_bytes;
+                        }
+                        if (count > 0)
+                        {
+                            write(client_info->fd[i]->sockfd, buffer + pos, count);
+                        }
+                        bzero(buffer, 1024);
+                        fclose(tmp_file);
+                        free(op_data_node);
+                        remove("temp_file.txt");
+                    }
+
                     // for general case
                     else
                     {
