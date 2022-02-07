@@ -60,7 +60,7 @@ typedef struct invite
     int rec_sock;
     int sender_id;
     int rec_id;
-    // 0:pending ,1:accepted ,2:rejeted
+    // 0:pending ,1:accepted ,-1:rejeted
     int status;
     // 1:V 2:E
     int access;
@@ -200,12 +200,12 @@ void add_invite_node(int sender_sock, int rec_id, int access, char *file_name, C
     }
 }
 
-int check_invite(int *fd)
+int check_invite(int *fd, int id)
 {
     Invite_list *temp = invite_head;
     while (temp != NULL)
     {
-        if (temp->invite->sender_sock == *fd)
+        if (temp->invite->sender_sock == *fd && temp->invite->rec_id == id)
         {
             return 1;
         }
@@ -436,6 +436,7 @@ void add_file_node(char *file_name, int *fd, Client *client_info)
 void get_file_record(char *buffer)
 {
     char msg[100];
+    char perm[10];
     File_record *temp = head;
     if (temp == NULL)
     {
@@ -449,14 +450,27 @@ void get_file_record(char *buffer)
             bzero(msg, 100);
             FILE *file = fopen(temp->file->file_name, "r");
             int line_count = NLINEX(file);
-            sprintf(msg, "%s %d %d |", temp->file->file_name, temp->file->origin_client_id, line_count);
+            sprintf(msg, "%s %d %s %d ", temp->file->file_name, temp->file->origin_client_id, "Number of Lines:", line_count);
             strcat(buffer, msg);
+            bzero(msg, 100);
+            sprintf(msg, "%s", "Collaborators :|");
+            strcat(buffer, msg);
+            bzero(msg, 100);
+
             for (int i = 0; i < 4; i++)
             {
-                bzero(msg, 100);
+                bzero(perm, 10);
                 if (temp->file->c[i]->client_id != 0)
                 {
-                    sprintf(msg, "%d (%d)|", temp->file->c[i]->client_id, temp->file->c[i]->access);
+                    if (temp->file->c[i]->access == 1)
+                    {
+                        sprintf(perm, "%s", "Read");
+                    }
+                    else if (temp->file->c[i]->access == 2)
+                    {
+                        sprintf(perm, "%s", "Write");
+                    }
+                    sprintf(msg, "%d (%s)|", temp->file->c[i]->client_id, perm);
                     strcat(buffer, msg);
                 }
             }
@@ -573,15 +587,15 @@ void parser(char *buffer, Client *client_info, int *fd)
         {
             // send invite from here
             bzero(buffer, 1024);
-            if (check_invite(fd))
+            if (check_invite(fd, id))
             {
-                sprintf(buffer, "%s", "Invite Already sent Wait for reply");
+                sprintf(buffer, "%s", "Invite Already sent. Please wait for reply");
             }
             else
             {
                 add_invite_node(*fd, id, access, file_name, client_info);
                 invite_count = 1;
-                sprintf(buffer, "%s", "Invite sent");
+                sprintf(buffer, "%s %d", "Invite sent to ", id);
             }
         }
         else
@@ -700,7 +714,7 @@ int main(int argc, char *argv[])
                 if (temp->invite->flag == 1)
                 {
                     bzero(buffer, 1024);
-                    sprintf(buffer, "%s %d", "Invitation from ", temp->invite->sender_id);
+                    sprintf(buffer, "%s %d %s %s %s %d", "Invitation from ", temp->invite->sender_id, "for ", temp->invite->file_name, "access:", temp->invite->access);
                     write(temp->invite->rec_sock, buffer, sizeof(buffer));
                     temp->invite->flag = 0;
                 }
