@@ -376,8 +376,23 @@ int main(int argc, char *argv[])
             }
             else if (strcmp(buffer, "delete") == 0)
             {
-                printf("delete initiated\n");
                 bzero(buffer, 1024);
+                read(sockfd, buffer, sizeof(buffer));
+                int read_count = atoi(buffer);
+                bzero(buffer, 1024);
+                int chunk = 256;
+                int pos = 0;
+                while (read_count > chunk)
+                {
+                    int rec_byte = read(sockfd, buffer + pos, chunk);
+                    read_count -= rec_byte;
+                    pos += rec_byte;
+                }
+                if (read_count > 0)
+                {
+                    read(sockfd, buffer + pos, read_count);
+                }
+                puts(buffer);
             }
             else
             {

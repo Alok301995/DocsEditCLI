@@ -1239,9 +1239,40 @@ int main(int argc, char *argv[])
                                 count++;
                             }
                         }
-                        free(op_data_node);
-                        fclose(file);
+                        file = freopen(op_data_node->file_name, "w+", file);
+                        rewind(file);
+                        rewind(temp_file);
+                        bzero(file_buff, 1000);
+                        while (!feof(temp_file))
+                        {
+                            fgets(file_buff, 1000, temp_file);
+                            fputs(file_buff, file);
+                            bzero(file_buff, 1000);
+                        }
                         fclose(temp_file);
+                        remove("temp_file.txt");
+                        rewind(file);
+                        // initiate file transfer to client
+                        int bytes = byte_count(file);
+                        sprintf(buffer, "%d", bytes);
+                        write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        bzero(buffer, 1024);
+                        count = fread(buffer, sizeof(char), bytes, file);
+                        int pos = 0;
+                        int chunk = 256;
+                        while (count > chunk)
+                        {
+                            int send_bytes = write(client_info->fd[i]->sockfd, buffer + pos, chunk);
+                            count -= send_bytes;
+                            pos += send_bytes;
+                        }
+                        if (count > 0)
+                        {
+                            write(client_info->fd[i]->sockfd, buffer + pos, count);
+                        }
+                        bzero(buffer, 1024);
+                        fclose(file);
+                        free(op_data_node);
                     }
                     // for general case
                     else
