@@ -73,7 +73,7 @@ int parser(char *buffer)
     bzero(command, 10);
     bzero(msg, 100);
     int count = sscanf(buffer, "%[^' '\n] %[^\n]", command, msg);
-    if (strcmp(command, "/user") == 0 && count == 1)
+    if (strcmp(command, "/users") == 0 && count == 1)
     {
         if (strlen(msg) == 0)
         {
@@ -172,6 +172,23 @@ int parser(char *buffer)
     {
         if (strlen(msg) == 0)
         {
+            return 1;
+        }
+        else
+        {
+            printf("Invalid Command\n");
+            return 0;
+        }
+    }
+    else if (strcmp(command, "/read") == 0)
+    {
+        char file_name[30];
+        char s_idx[10];
+        char e_idx[10];
+        int msg_count = sscanf(msg, "%[^' '] %[^' '] %[^\n]", file_name, s_idx, e_idx);
+        if (msg_count >= 1 && msg_count <= 3)
+        {
+            // 1. check whether the s_idx and e_idx are valid number or not
             return 1;
         }
         else

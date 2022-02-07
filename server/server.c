@@ -107,7 +107,6 @@ int NLINEX(FILE *file)
         }
     }
     rewind(file);
-    fclose(file);
     return count;
 }
 
@@ -532,6 +531,103 @@ int check_file_name_owner(char *file_name, int *fd, Client *client_info)
 
 // ********************************************
 
+// **************Read Function*****************
+
+int precheck_read(int *fd, Client *client_info, char *file_name)
+{
+    int id = get_client_id(fd, client_info);
+    File_record *temp = head;
+    while (temp != NULL)
+    {
+        if (strcmp(temp->file->file_name, file_name) == 0)
+        {
+            if (id == temp->file->origin_client_id)
+            {
+                return 1;
+            }
+            else
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    if (temp->file->c[i]->collab_flag == 1)
+                    {
+                        if (temp->file->c[i]->client_id == id)
+                        {
+                            return 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        temp = temp->next;
+    }
+    return 0;
+}
+
+int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_flag)
+{
+    FILE *file = fopen(file_name, "r");
+    int total_lines = NLINEX(file);
+    fclose(file);
+    int start;
+    int end;
+    if (s_flag == 1)
+    {
+        start = s_idx >= 0 ? s_idx : total_lines + s_idx;
+    }
+    if (e_flag == 1)
+    {
+        end = e_idx >= 0 ? e_idx : total_lines + e_idx;
+    }
+    if (start < 0 || end < 0)
+    {
+        return 0;
+    }
+
+    else if (s_flag == 1 && e_flag == 1)
+    {
+        if (start < total_lines && end < total_lines && start <= end)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    else if ((s_flag == 1 && e_flag == 0) || (s_flag == 0 && e_flag == 1))
+    {
+        if (s_flag == 1 && e_flag == 0)
+        {
+            if (start < total_lines)
+            {
+                return 1;
+            }
+            else
+                return 0;
+        }
+        else
+        {
+            if (end < total_lines)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+    }
+
+    else
+    {
+        return 1;
+    }
+}
+
+// ********************************************
+
 // ******************Parser********************
 void parser(char *buffer, Client *client_info, int *fd)
 {
@@ -539,7 +635,7 @@ void parser(char *buffer, Client *client_info, int *fd)
     char msg[100];
     int count = sscanf(buffer, "%[^' '\n] %[^\n]", command, msg);
     bzero(buffer, 1024);
-    if (strcmp(command, "/user") == 0 && count == 1)
+    if (strcmp(command, "/users") == 0 && count == 1)
     {
         get_connected_client(buffer, client_info, fd);
     }
@@ -635,6 +731,59 @@ void parser(char *buffer, Client *client_info, int *fd)
             sprintf(buffer, "%s", "Invalid Command");
         }
     }
+    // read operation
+    else if (strcmp(command, "/read") == 0)
+    {
+
+        char file_name[30];
+        char s_idx[10];
+        char e_idx[10];
+        bzero(file_name, 30);
+        bzero(s_idx, 10);
+        bzero(e_idx, 10);
+        int msg_count = sscanf(msg, "%[^' '] %[^' '] %[^\n]", file_name, s_idx, e_idx);
+        // check if the requested file exits on the file record or not
+        // check if the user who is reqiesting read is owner or colaborator
+        // check if the requested line is out of range or not
+
+        if (precheck_read(fd, client_info, file_name) == 1)
+        {
+            int s = -1;
+            int e = -1;
+            int s_flag = 0;
+            int e_flag = 0;
+            if (strlen(s_idx) > 0)
+            {
+                s = atoi(s_idx);
+                printf("start %d\n", s);
+                s_flag = 1;
+            }
+            if (strlen(e_idx) > 0)
+            {
+                e = atoi(e_idx);
+                printf("end %d\n", e);
+
+                e_flag = 1;
+            }
+
+            if (validate_read_args(file_name, s, e, s_flag, e_flag) == 1)
+            {
+                bzero(buffer, 1024);
+                sprintf(buffer, "%s", "File read success");
+            }
+            else
+            {
+                bzero(buffer, 1024);
+                sprintf(buffer, "%s", "Invalid File Arguments. please enter valid indexs");
+            }
+        }
+        else
+        {
+            bzero(buffer, 1024);
+            sprintf(buffer, "%s", "File read Error");
+        }
+    }
+
     else
     {
         sprintf(buffer, "%s", "Invalid Command");
