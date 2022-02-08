@@ -5,90 +5,83 @@
 
 // read functionality
 
-int NLINEX(FILE *file)
+typedef struct Node
 {
-    int count = 0;
-    char buffer[100];
-    while (!feof(file) && fgets(buffer, 1000, file))
-    {
-        if (strlen(buffer) > 0)
-        {
-            count++;
-        }
-    }
-    rewind(file);
-    return count;
-}
+    /* data */
+    int data;
+    struct Node *next;
+} Node;
 
-int validate_read_args(FILE *file, int s_idx, int e_idx, int s_flag, int e_flag)
+Node *head = NULL;
+
+void add_node(int data)
 {
-    int total_lines = NLINEX(file);
-    int start;
-    int end;
-    if (s_flag == 1)
+    Node *temp = (Node *)malloc(sizeof(Node));
+    temp->data = data;
+    temp->next = NULL;
+    if (head == NULL)
     {
-        start = s_idx >= 0 ? s_idx : total_lines + s_idx;
+        head = temp;
     }
-    if (e_flag == 1)
-    {
-        end = e_idx >= 0 ? e_idx : total_lines + e_idx;
-    }
-    if (start < 0 || end < 0)
-    {
-        return 0;
-    }
-
-    else if (s_flag == 1 && e_flag == 1)
-    {
-        if (start < total_lines && end < total_lines && start <= end)
-        {
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-    else if ((s_flag == 1 && e_flag == 0) || (s_flag == 0 && e_flag == 1))
-    {
-        if (s_flag == 1 && e_flag == 0)
-        {
-            if (start < total_lines)
-            {
-                return 1;
-            }
-            else
-                return 0;
-        }
-        else
-        {
-            if (end < total_lines)
-            {
-                return 1;
-            }
-            else
-            {
-                return 0;
-            }
-        }
-    }
-
     else
     {
-        return 1;
+        temp->next = head;
+        head = temp;
+    }
+}
+void print_data()
+{
+
+    Node *temp = head;
+    while (temp != NULL)
+    {
+        printf("%d | ", temp->data);
+        temp = temp->next;
+    }
+}
+
+void find_and_delete(int data)
+{
+    Node *temp = head;
+    Node *prev = NULL;
+    while (temp != NULL)
+    {
+        if (temp->data == data)
+        {
+            Node *x = NULL;
+            // delete node is at start
+            if (prev == NULL)
+            {
+                x = temp;
+                head = temp->next;
+                temp = head;
+            }
+            else
+            {
+                x = temp;
+                prev->next = temp->next;
+                temp = temp->next;
+            }
+            x->next = NULL;
+            free(x);
+        }
+        else
+        {
+            prev = temp;
+            temp = temp->next;
+        }
     }
 }
 
 int main()
 {
-
-    FILE *file = fopen("test_file.txt", "r");
-    int count = NLINEX(file);
-    int validate = validate_read_args(file, -1, 0, 1, 1);
-    printf("%d\n", validate);
-    char s_idx[10];
-    bzero(s_idx, 10);
-    sprintf(s_idx, "%s", "-6");
-    printf("%d\n", atoi(s_idx));
-    fclose(file);
+    add_node(2);
+    add_node(3);
+    add_node(4);
+    add_node(5);
+    add_node(4);
+    print_data();
+    find_and_delete(4);
+    printf("\n");
+    print_data();
 }

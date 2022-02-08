@@ -228,6 +228,10 @@ int parser(char *buffer)
             return 0;
         }
     }
+    else if (strcmp(command, "/insert") == 0)
+    {
+        return 1;
+    }
 
     else
     {
@@ -393,6 +397,7 @@ int main(int argc, char *argv[])
                     read(sockfd, buffer + pos, read_count);
                 }
                 puts(buffer);
+                bzero(buffer, 1024);
             }
             else
             {

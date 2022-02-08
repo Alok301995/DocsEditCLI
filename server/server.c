@@ -138,6 +138,74 @@ int NLINEX(FILE *file)
     rewind(file);
     return count;
 }
+void insert_in_file(char *txt, FILE *file)
+{
+    int N = strlen(txt);
+    int i = 0;
+    while (i < N)
+    {
+
+        if (txt[i] == 92)
+        {
+            if (i == N - 1)
+            {
+                fputc(txt[i], file);
+                i++;
+            }
+            else
+            {
+                if (txt[i + 1] == 'n')
+                {
+                    fputc('\n', file);
+                    i = i + 2;
+                }
+                else
+                {
+                    fputc(txt[i], file);
+                    i++;
+                }
+            }
+        }
+        else
+        {
+            fputc(txt[i], file);
+            i++;
+        }
+    }
+}
+int _atoi(char *str)
+{
+    int sign = 1, base = 0, i = 0, count = 0;
+    while (str[i] == ' ')
+    {
+        i++;
+    }
+    if (str[i] == '-')
+    {
+        sign = 1 - 2 * (str[i++] == '-');
+        count++;
+    }
+    while (str[i] >= '0' && str[i] <= '9')
+    {
+        if (base > __INT32_MAX__ / 10 || (base == __INT32_MAX__ / 10 && str[i] - '0' > 7))
+        {
+            if (sign == 1)
+                return __INT32_MAX__;
+            else
+                return __INT32_MAX__;
+        }
+        base = 10 * base + (str[i++] - '0');
+        count++;
+    }
+    if (count == strlen(str))
+    {
+        return base * sign;
+    }
+    else
+    {
+        return __INT32_MAX__;
+    }
+}
 
 int get_client_id(int *fd, Client *client_info)
 {
@@ -294,6 +362,95 @@ void delete_invite(int *fd)
     prev->next = temp->next;
     free(temp->invite);
     free(temp);
+}
+// remove all the matching record and also set the flag of collaborator to 0;
+
+void delete_file_record(int *fd, Client *client_info)
+{
+    File_record *temp = head;
+    File_record *prev = NULL;
+    int id = get_client_id(fd, client_info);
+    while (temp != NULL)
+    {
+        if (temp->file->origin_client_id == id)
+        {
+            File_record *x = NULL;
+            if (prev == NULL)
+            {
+                head = temp->next;
+                x = temp;
+                temp = head;
+            }
+            else
+            {
+                x = temp;
+                prev->next = temp->next;
+                temp = temp->next;
+            }
+            // remove file from the server;
+            x->next = NULL;
+            remove(x->file->file_name);
+            free(x->file);
+            free(x);
+        }
+        else
+        {
+            prev = temp;
+            temp = temp->next;
+        }
+    }
+}
+
+// delete pending invite if the client get disconnected.
+
+void delete_colab(int *fd, Client *client_info)
+{
+    int id = get_client_id(fd, client_info);
+    File_record *temp = head;
+    while (temp != NULL)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (temp->file->c[i]->client_id == id)
+            {
+                temp->file->c[i]->collab_flag = 0;
+            }
+        }
+        temp = temp->next;
+    }
+}
+
+void delete_pending_invite(int *fd, Client *client_info)
+{
+    Invite_list *temp = invite_head;
+    Invite_list *prev = NULL;
+    while (temp != NULL)
+    {
+        if (temp->invite->sender_sock == *fd && temp->invite->status == 0)
+        {
+            Invite_list *x = NULL;
+            if (prev == NULL)
+            {
+                invite_head = temp->next;
+                x = temp;
+                temp = invite_head;
+            }
+            else
+            {
+                x = temp;
+                prev->next = temp->next;
+                temp = temp->next;
+            }
+            x->next = NULL;
+            free(x->invite);
+            free(x);
+        }
+        else
+        {
+            prev = temp;
+            temp = temp->next;
+        }
+    }
 }
 
 void assign_invite_perm(int *fd, int status, int flag, Client *client_info)
@@ -678,6 +835,78 @@ int validate_read_args(char *file_name, int s_idx, int e_idx, int s_flag, int e_
 
 // **********************************************
 
+// *****************Insert Function *************
+int _INSERTX(int _index, char *_msg, int _flag, FILE *file, int total_lines)
+{
+    if (_flag)
+    {
+        fseek(file, 0, SEEK_END);
+        if (total_lines == 0)
+        {
+            // copy the content of msg
+            insert_in_file(_msg, file);
+            fputc('\n', file);
+            // ***********************
+        }
+        else
+        {
+            // copy the content of msg
+            insert_in_file(_msg, file);
+            fputc('\n', file);
+            // **********************
+        }
+        rewind(file);
+        return 1;
+    }
+    else
+    {
+
+        char ch;
+        FILE *temp_file = tmpfile();
+        int count = 0;
+        int idx = _index >= 0 ? _index : total_lines + _index;
+        int _file_position;
+        while (count < idx && idx < total_lines)
+        {
+            ch = fgetc(file);
+            if (ch == '\n')
+            {
+                count++;
+            }
+        }
+        _file_position = ftell(file);
+        if (idx >= 0 && idx < total_lines)
+        {
+            while ((ch = fgetc(file)) != EOF)
+            {
+                fputc(ch, temp_file);
+            }
+            fseek(file, _file_position, SEEK_SET);
+            // insert line to the main file.
+            insert_in_file(_msg, file);
+            fputc('\n', file);
+
+            // ****************************
+            // copying the content of temp file to main file
+            rewind(temp_file);
+            while ((ch = fgetc(temp_file)) != EOF)
+            {
+                fputc(ch, file);
+            }
+            rewind(file);
+            fclose(temp_file);
+            return 1;
+        }
+        else
+        {
+            fclose(temp_file);
+            return 0;
+        }
+    }
+}
+
+// ***********************************************
+
 // ******************Parser********************
 void parser(char *buffer, Client *client_info, int *fd)
 {
@@ -892,9 +1121,73 @@ void parser(char *buffer, Client *client_info, int *fd)
             sprintf(buffer, "%s", "File Delete Error");
         }
     }
+    else if (strcmp(command, "/insert") == 0)
+    {
+        bzero(buffer, 1024);
+        char file_name[30];
+        char idx[1000];
+        char c_msg[1000];
+        bzero(file_name, 30);
+        bzero(idx, 1000);
+        bzero(c_msg, 1000);
+        int msg_count = sscanf(msg, "%[^' '] %[^' '] %[^\n]", file_name, idx, c_msg);
+        int eof_flag = 0;
+        char temp_msg[2000];
+        bzero(temp_msg, 2000);
+        char client_msg[2000];
+        bzero(client_msg, 2000);
+
+        // check weather idx is valid index or not
+        int i = _atoi(idx);
+        if (i == __INT32_MAX__)
+        {
+            eof_flag = 1;
+            sprintf(temp_msg, "%s %s", idx, c_msg);
+        }
+        else
+        {
+            sprintf(temp_msg, "%s", c_msg);
+        }
+        sscanf(temp_msg, "\"%[^\"]\"", client_msg);
+
+        // printf("%s\n", client_msg);
+
+        if (precheck_read(fd, client_info, file_name, 1) == 1)
+        {
+            FILE *file = fopen(file_name, "r+");
+            int total_lines = NLINEX(file);
+            int ind;
+            if (eof_flag == 0)
+            {
+                ind = i >= 0 ? i : total_lines + i;
+            }
+            else
+            {
+                ind = 0;
+            }
+            if (ind >= 0 && ind < total_lines)
+            {
+                int success = _INSERTX(ind, client_msg, eof_flag, file, total_lines);
+                bzero(buffer, 1024);
+                sprintf(buffer, "%s", "Insert Successful");
+            }
+            else
+            {
+
+                bzero(buffer, 1024);
+                sprintf(buffer, "%s", "Insert Error");
+            }
+        }
+        else
+        {
+            bzero(buffer, 1024);
+            sprintf(buffer, "%s", "Error in insert");
+        }
+    }
 
     else
     {
+        bzero(buffer, 1024);
         sprintf(buffer, "%s", "Invalid Command");
     }
 }
@@ -1094,6 +1387,9 @@ int main(int argc, char *argv[])
                     if (strcmp(buffer, "exit") == 0)
                     {
                         write(client_info->fd[i]->sockfd, buffer, sizeof(buffer));
+                        delete_colab(&client_info->fd[i]->sockfd, client_info);
+                        delete_pending_invite(&client_info->fd[i]->sockfd, client_info);
+                        delete_file_record(&client_info->fd[i]->sockfd, client_info);
                         int check = disconnect_client(&client_info->fd[i]->sockfd, client_info);
                         bzero(buffer, 1024);
                     }
