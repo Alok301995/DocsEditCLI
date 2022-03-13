@@ -12,7 +12,9 @@
 #define INT_MAX 2147483647;
 
 // *******Global**********
+char download_file_name[100];
 
+// ***********************
 char file_name[30];
 
 void print_and_exit(char *msg)
@@ -128,6 +130,8 @@ int parser(char *buffer)
         }
         else
         {
+            bzero(download_file_name, 100);
+            sprintf(download_file_name, "%s", msg);
             return 1;
         }
     }
@@ -202,7 +206,52 @@ int parser(char *buffer)
         {
             // 1. check whether the s_idx and e_idx are valid number or not
             // check file_name length
-            return 1;
+            if (msg_count == 1)
+            {
+                if (strlen(file_name) == 0)
+                {
+
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else
+                {
+
+                    return 1;
+                }
+            }
+            else if (msg_count == 2)
+            {
+                if (strlen(file_name) == 0)
+                {
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else if (_atoi(s_idx) == __INT32_MAX__)
+                {
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else
+                    return 1;
+            }
+            else if (msg_count == 3)
+            {
+                if (strlen(file_name) == 0 || strlen(s_idx) == 0 || strlen(e_idx) == 0)
+                {
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else if (_atoi(s_idx) == __INT32_MAX__ || _atoi(e_idx) == __INT32_MAX__)
+                {
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else
+                {
+                    return 1;
+                }
+            }
         }
         else
         {
@@ -220,7 +269,53 @@ int parser(char *buffer)
         {
             // 1. check whether the s_idx and e_idx are valid number or not
             // check file_name length
-            return 1;
+
+            if (msg_count == 1)
+            {
+                if (strlen(file_name) == 0)
+                {
+
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else
+                {
+
+                    return 1;
+                }
+            }
+            else if (msg_count == 2)
+            {
+                if (strlen(file_name) == 0)
+                {
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else if (_atoi(s_idx) == __INT32_MAX__)
+                {
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else
+                    return 1;
+            }
+            else if (msg_count == 3)
+            {
+                if (strlen(file_name) == 0 || strlen(s_idx) == 0 || strlen(e_idx) == 0)
+                {
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else if (_atoi(s_idx) == __INT32_MAX__ || _atoi(e_idx) == __INT32_MAX__)
+                {
+                    printf("Invalid Command\n");
+                    return 0;
+                }
+                else
+                {
+                    return 1;
+                }
+            }
         }
         else
         {
@@ -230,12 +325,71 @@ int parser(char *buffer)
     }
     else if (strcmp(command, "/insert") == 0)
     {
+        char file_name[30];
+        char idx[1000];
+        char c_msg[1000];
+        char garbage[1000];
+        bzero(file_name, 30);
+        bzero(idx, 1000);
+        bzero(c_msg, 1000);
+        bzero(garbage, 1000);
+        int msg_count = sscanf(msg, "%[^' '] %[^' '] %[^\n]", file_name, idx, c_msg);
+        if (strlen(file_name) == 0)
+        {
+
+            printf("Invalid Command.Please check parameters\n");
+            return 0;
+        }
+
+        else if (msg_count == 1)
+        {
+            printf("Invalid Command.Please check parameters\n");
+            return 0;
+        }
+
+        else if (msg_count == 2)
+        {
+            char client_msg[2000];
+            bzero(client_msg, 2000);
+            sscanf(idx, "\"%[^\"]\" %[^\n]", client_msg, garbage);
+            // printf("%d\n", msg_count);
+            // printf("%ld\n", strlen(client_msg));
+            // printf("%ld\n", strlen(garbage));
+
+            if ((strlen(client_msg) == 0 && strlen(garbage) == 0) || strlen(garbage) != 0)
+            {
+                printf("Invalid Command.Please check parameters\n");
+                return 0;
+            }
+            else
+                return 1;
+        }
+        else if (msg_count == 3)
+        {
+            char client_msg[2000];
+            bzero(client_msg, 2000);
+            sscanf(c_msg, "\"%[^\"]\" %[^\n]", client_msg, garbage);
+            // printf("%d\n", msg_count);
+            // printf("%ld\n", strlen(client_msg));
+            // printf("%ld\n", strlen(garbage));
+            if (strlen(garbage) != 0)
+            {
+                printf("Invalid Command.Please check parameters\n");
+
+                return 0;
+            }
+            else
+            {
+                return 1;
+            }
+        }
+
         return 1;
     }
 
     else
     {
-        printf("Invalid Command\n");
+        printf("Invalid Command.Please check parameters\n");
         return 0;
     }
 }
@@ -337,7 +491,7 @@ int main(int argc, char *argv[])
             }
             else if (strcmp(buffer, "download") == 0)
             {
-                FILE *file = fopen("download.txt", "w");
+                FILE *file = fopen(download_file_name, "w+");
                 read(sockfd, buffer, sizeof(buffer));
                 int read_count = atoi(buffer);
                 bzero(buffer, 1024);
@@ -402,6 +556,7 @@ int main(int argc, char *argv[])
             else
             {
                 printf("%s\n", buffer);
+                bzero(download_file_name, 100);
                 BZERO;
             }
         }

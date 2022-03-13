@@ -369,6 +369,8 @@ void delete_file_record(int *fd, Client *client_info)
 {
     File_record *temp = head;
     File_record *prev = NULL;
+    char info_buff[1000];
+    bzero(info_buff, 1000);
     int id = get_client_id(fd, client_info);
     while (temp != NULL)
     {
@@ -426,7 +428,7 @@ void delete_pending_invite(int *fd, Client *client_info)
     Invite_list *prev = NULL;
     while (temp != NULL)
     {
-        if (temp->invite->sender_sock == *fd && temp->invite->status == 0)
+        if ((temp->invite->sender_sock == *fd || temp->invite->rec_sock == *fd) && temp->invite->status == 0)
         {
             Invite_list *x = NULL;
             if (prev == NULL)
@@ -625,7 +627,7 @@ void get_file_record(char *buffer)
     File_record *temp = head;
     if (temp == NULL)
     {
-        sprintf(buffer, "%s", "No Record Found");
+        sprintf(buffer, "%s", "No Files Found");
     }
     else
     {
@@ -645,7 +647,7 @@ void get_file_record(char *buffer)
             for (int i = 0; i < 4; i++)
             {
                 bzero(perm, 10);
-                if (temp->file->c[i]->client_id != 0)
+                if (temp->file->c[i]->client_id != 0 && temp->file->c[i]->collab_flag == 1)
                 {
                     if (temp->file->c[i]->access == 1)
                     {
@@ -663,6 +665,20 @@ void get_file_record(char *buffer)
             temp = temp->next;
         }
     }
+}
+
+int find_file(char *file_name)
+{
+    File_record *node = head;
+    while (node != NULL)
+    {
+        if (strcmp(node->file->file_name, file_name) == 0)
+        {
+            return 1;
+        }
+        node = node->next;
+    }
+    return 0;
 }
 
 // *****************************************************
@@ -684,7 +700,7 @@ int find_client_id(int *fd, Client *client_info, int id)
     {
         if (client_info->fd[i]->client_id == id)
         {
-            if (client_info->fd[i]->sockfd != *fd)
+            if (client_info->fd[i]->sockfd != *fd && client_info->fd[i]->flag != 0)
             {
                 return 1;
             }
@@ -930,7 +946,7 @@ void parser(char *buffer, Client *client_info, int *fd)
     else if (strcmp(command, "/upload") == 0)
     {
         // check weather file already exist or not and also the upload.. same uploader can upload file but different uploaded can not upload same file
-        if (access(msg, F_OK) < 0)
+        if (find_file(msg) == 0)
         {
             snprintf(file_name, 100, "%s", msg);
             add_file_node(file_name, fd, client_info);
@@ -1181,7 +1197,7 @@ void parser(char *buffer, Client *client_info, int *fd)
         else
         {
             bzero(buffer, 1024);
-            sprintf(buffer, "%s", "Error in insert");
+            sprintf(buffer, "%s", "Insert Error");
         }
     }
 
@@ -1259,13 +1275,25 @@ int main(int argc, char *argv[])
         // *******************Invite*********************************
         if (invite_count == 1)
         {
+            char acc[10];
             Invite_list *temp = invite_head;
             while (temp != NULL)
             {
                 if (temp->invite->flag == 1)
                 {
+                    if (temp->invite->access == 1)
+                    {
+                        bzero(acc, 10);
+                        sprintf(acc, "Read");
+                    }
+                    else if (temp->invite->access == 2)
+                    {
+                        bzero(acc, 10);
+                        sprintf(acc, "Write");
+                    }
+
                     bzero(buffer, 1024);
-                    sprintf(buffer, "%s %d %s %s %s %d", "Invitation from ", temp->invite->sender_id, "for ", temp->invite->file_name, "access:", temp->invite->access);
+                    sprintf(buffer, "%s %d %s %s %s %s %s", "Invitation from ", temp->invite->sender_id, "for ", temp->invite->file_name, "access:", acc, ".Please type YES or NO.");
                     write(temp->invite->rec_sock, buffer, sizeof(buffer));
                     temp->invite->flag = 0;
                 }
@@ -1303,7 +1331,7 @@ int main(int argc, char *argv[])
                     }
                     else if (x->invite->status == 1)
                     {
-                        sprintf(buffer, "%s", "Invite Accepted");
+                        sprintf(buffer, "%s %d", "Invite Accepted from :", x->invite->rec_id);
                     }
                     write(x->invite->sender_sock, buffer, sizeof(buffer));
                     free(x->invite);
@@ -1364,6 +1392,9 @@ int main(int argc, char *argv[])
                 else if (read_count == 0)
                 {
                     // client disconnected;
+                    delete_colab(&client_info->fd[i]->sockfd, client_info);
+                    delete_pending_invite(&client_info->fd[i]->sockfd, client_info);
+                    delete_file_record(&client_info->fd[i]->sockfd, client_info);
                     int success = disconnect_client(&client_info->fd[i]->sockfd, client_info);
                     if (success)
                     {
