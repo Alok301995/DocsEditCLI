@@ -1,7 +1,7 @@
 # Online File Collaborator
 TCP-based multi-client online file sharing and editing console-based application. Supports a maximum of five simultaneous clients. Uses the POSIX sockets library.
 
-## Features
+# Features
 
 ### Uploading Files
 Each client can upload a file of its choice.
@@ -15,7 +15,7 @@ Each client can send request to other active client for collaboration by sending
 Multiple client can perform CRUD operation on files provided they have access for operations
 
 
-## How to Run
+# How to Run
 To start Server
 Compile the program with
 ```bash
