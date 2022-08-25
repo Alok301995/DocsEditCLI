@@ -1,5 +1,5 @@
-# Online File Collaborator
-TCP-based multi-client online file sharing and editing console-based application. Supports a maximum of five simultaneous clients. Uses the POSIX sockets library.
+# Online File Editor With Collaborator
+TCP-based multi-client online file editing and sharing console-based application. Supports a maximum of five simultaneous clients. Uses the POSIX sockets library.
 
 # Features
 
