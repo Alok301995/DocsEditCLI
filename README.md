@@ -1,5 +1,5 @@
-# Online File Editor With Collaborator
-TCP-based multi-client online file editing and sharing console-based application. Supports a maximum of five simultaneous clients. Uses the POSIX sockets library.
+# DocsEditCLI
+TCP-based multi-client online file editing and sharing console-based application. Currently supports a maximum of five simultaneous clients. Uses the POSIX sockets library.
 
 # Features
 
